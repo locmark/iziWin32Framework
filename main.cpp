@@ -35,6 +35,7 @@ public:
   OnClickAction () {
     action();
   }
+  
   Text (std::string text) {
     SetWindowText(buttonHwnd, text.c_str());
   }
