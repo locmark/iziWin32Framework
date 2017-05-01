@@ -4,19 +4,45 @@
 
 char* NazwaKlasy = (char*)"Klasa Okienka";
 MSG Komunikat;
+HWND hwnd;
+HINSTANCE hInstance;
 
 LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
-// class document_t {
-// public:
-//   document_t() {}
-// };
+
+class button_t {
+  HWND buttonHwnd;
+  void(*action)();
+public:
+  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    buttonHwnd = CreateWindow(TEXT("button"),                      // The class name required is button
+		TEXT(text.c_str()),                  // the caption of the button
+		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,  // the styles
+		x, y,                                  // the left and top co-ordinates
+		width, height,                              // width and height
+		hwnd,                                 // parent window handle
+		(HMENU)id,                   // the ID of your button
+		hInstance,                            // the instance of your application
+		NULL);                               // extra bits you dont really need
+
+    OnClick ([]()->void{});
+  }
+
+  OnClick (void(*function)()) {
+    action = function;
+  }
+
+  OnClickAction () {
+    action();
+  }
+  Text (std::string text) {
+    SetWindowText(buttonHwnd, text.c_str());
+  }
+};
+
 
 class window_t {
-  HWND hwnd;
-  HWND hwndButton;
-  HINSTANCE hInstance;
-
+  button_t buttonList[1000];
   void(*buttonActions[])();
 public:
   // document_t* document;
@@ -76,7 +102,7 @@ public:
       case WM_COMMAND:
         wmId = LOWORD(wParam);
         wmEvent = HIWORD(wParam);
-        buttonActions[wmId]();
+        buttonList[wmId].OnClickAction();
         break;
 
       // case WM_PAINT:
@@ -99,43 +125,24 @@ public:
     }
   }
 
-  addButton (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    hwndButton = CreateWindow(TEXT("button"),                      // The class name required is button
-		TEXT(text.c_str()),                  // the caption of the button
-		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,  // the styles
-		x, y,                                  // the left and top co-ordinates
-		width, height,                              // width and height
-		hwnd,                                 // parent window handle
-		(HMENU)id,                   // the ID of your button
-		hInstance,                            // the instance of your application
-		NULL);                               // extra bits you dont really need
-
-    attachActionToButton(id, []()->void{});
-    // UpdateWindow(hwnd);
-  }
-
-  attachActionToButton (unsigned int id, void(*function)()) {
-    buttonActions[id] = function;
+  button_t& button (unsigned int id) {
+    return buttonList[id];
   }
 };
 
 
-
-// document_t document;
 window_t window;
 
-int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
-{
-  window.init(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
-  window.addButton("test_button", 2100, 200, 300, 100, 50);
-  window.addButton("test_button2", 2101, 200, 250, 100, 50);
-  window.attachActionToButton(2100, []()->void{
-    std::cout << "dupa\n";
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow ) {
+  window.init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+
+  window.button(2100).Create("test_button", 2100, 200, 300, 100, 50);
+  window.button(2100).OnClick ([]()->void{
+    std::cout << "test132\n";
+    window.button(2100).Text("new text");
   });
-  window.attachActionToButton(2101, []()->void{
-    std::cout << "dupa2\n";
-  });
-  window.loop();
+
+  window.loop ();
 }
 
 
