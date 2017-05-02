@@ -7,15 +7,19 @@ MSG Komunikat;
 HWND hwnd;
 HINSTANCE hInstance;
 
+void(*actions[100])();
+
 LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
 
 class button_t {
-  HWND buttonHwnd;
-  void(*action)();
+  HWND localHwnd;
+  unsigned int _id;
 public:
   Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    buttonHwnd = CreateWindow(TEXT("button"),                      // The class name required is button
+    _id = id;
+    localHwnd = CreateWindow(
+    TEXT("button"),                      // The class name required is button
 		TEXT(text.c_str()),                  // the caption of the button
 		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,  // the styles
 		x, y,                                  // the left and top co-ordinates
@@ -29,21 +33,54 @@ public:
   }
 
   OnClick (void(*function)()) {
-    action = function;
+    actions[_id] = function;
   }
 
   Click () {
-    action();
+    actions[_id]();
   }
 
-  Text (std::string text) {
-    SetWindowText(buttonHwnd, text.c_str());
+  SetText (std::string text) {
+    SetWindowText(localHwnd, text.c_str());
   }
 };
 
+class textbox_t {
+  HWND localHwnd;
+  unsigned int _id;
+public:
+  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    _id = id;
+    localHwnd = CreateWindow(
+      TEXT("edit"),                      // The class name required is button
+  		TEXT(text.c_str()),                  // the caption of the button
+  		WS_BORDER|ES_MULTILINE|WS_CHILD|WS_VISIBLE,  // the styles
+  		x, y,                                  // the left and top co-ordinates
+  		width, height,                              // width and height
+  		hwnd,                                 // parent window handle
+  		(HMENU)id,                   // the ID of your button
+  		hInstance,                            // the instance of your application
+  		NULL);                               // extra bits you dont really need
+
+    OnClick ([]()->void{});
+  }
+
+  OnClick (void(*function)()) {
+    actions[_id] = function;
+  }
+
+  Click () {
+    actions[_id]();
+  }
+
+  SetText (std::string text) {
+    SetWindowText(localHwnd, text.c_str());
+  }
+};
 
 class window_t {
   button_t buttonList[1000];
+  textbox_t textboxList[1000];
   void(*buttonActions[])();
 public:
   // document_t* document;
@@ -103,7 +140,7 @@ public:
       case WM_COMMAND:
         wmId = LOWORD(wParam);
         wmEvent = HIWORD(wParam);
-        buttonList[wmId].Click();
+        actions[wmId]();
         break;
 
       // case WM_PAINT:
@@ -129,6 +166,10 @@ public:
   button_t& button (unsigned int id) {
     return buttonList[id];
   }
+
+  textbox_t& textbox (unsigned int id) {
+    return textboxList[id];
+  }
 };
 
 
@@ -137,10 +178,12 @@ window_t window;
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow ) {
   window.init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-  window.button(2100).Create("test_button", 2100, 200, 300, 100, 50);
+  window.textbox(200).Create("test_text", 200, 300, 300, 100, 50);
+
+  window.button(2100).Create("reset", 2100, 200, 300, 100, 50);
   window.button(2100).OnClick ([]()->void{
     std::cout << "test132\n";
-    window.button(2100).Text("new text");
+    window.textbox(200).SetText("reset :)");
   });
 
   window.loop ();
