@@ -2,6 +2,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstdio>
+// #include <Unknwn.h>
+#include <gdiplus.h>
+#include <objidl.h>
+
+
+using namespace Gdiplus;
+
+#pragma comment (lib,"Gdiplus.lib")
 
 char* NazwaKlasy = (char*)"Klasa Okienka";
 MSG Komunikat;
@@ -17,7 +26,7 @@ class button_t {
   HWND localHwnd;
   unsigned int _id;
 public:
-  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = id;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
@@ -33,19 +42,19 @@ public:
     OnClick ([]()->void{});
   }
 
-  Delete () {
+  void Delete () {
     DestroyWindow(localHwnd);
   }
 
-  OnClick (void(*function)()) {
+  void OnClick (void(*function)()) {
     actions[_id] = function;
   }
 
-  Click () {
+  void Click () {
     actions[_id]();
   }
 
-  SetText (std::string text) {
+  void SetText (std::string text) {
     SetWindowText(localHwnd, text.c_str());
   }
 };
@@ -55,7 +64,7 @@ class textbox_t {
   HWND localHwnd;
   unsigned int _id;
 public:
-  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = id;
     localHwnd = CreateWindow(
       TEXT("edit"),                      // The class name required is button
@@ -71,19 +80,19 @@ public:
     OnClick ([]()->void{});
   }
 
-  Delete () {
+  void Delete () {
     DestroyWindow(localHwnd);
   }
 
-  OnClick (void(*function)()) {
+  void OnClick (void(*function)()) {
     actions[_id] = function;
   }
 
-  Click () {
+  void Click () {
     actions[_id]();
   }
 
-  SetText (std::string text) {
+  void SetText (std::string text) {
     SetWindowText(localHwnd, text.c_str());
   }
 };
@@ -93,7 +102,7 @@ class radiobutton_t {
   HWND localHwnd;
   unsigned int _id;
 public:
-  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = id;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
@@ -109,19 +118,19 @@ public:
     OnClick ([]()->void{});
   }
 
-  Delete () {
+  void Delete () {
     DestroyWindow(localHwnd);
   }
 
-  OnClick (void(*function)()) {
+  void OnClick (void(*function)()) {
     actions[_id] = function;
   }
 
-  Click () {
+  void Click () {
     actions[_id]();
   }
 
-  SetText (std::string text) {
+  void SetText (std::string text) {
     SetWindowText(localHwnd, text.c_str());
   }
 };
@@ -132,24 +141,24 @@ class interval_t {
   unsigned int _id;
   void(*action)();
 public:
-  Create (unsigned int id, unsigned int interval) {
+  void Create (unsigned int id, unsigned int interval) {
     _id = id;
     SetTimer(hwnd, id, interval, 0);
   }
 
-  Delete () {
+  void Delete () {
     DestroyWindow(localHwnd);
   }
 
-  Stop () {
+  void Stop () {
     KillTimer(hwnd, _id);
   }
 
-  SetAction (void(*function)()) {
+  void SetAction (void(*function)()) {
     action = function;
   }
 
-  Action () {
+  void Action () {
     action();
   }
 };
@@ -164,7 +173,7 @@ class window_t {
 
   void(*buttonActions[])();
 public:
-  Init (HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  int Init (HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     hInstance = hInstance_to_save;
     // WYPEŁNIANIE STRUKTURY
     WNDCLASSEX wc;
@@ -206,7 +215,7 @@ public:
     UpdateWindow( hwnd );
   }
 
-  Loop () {
+  void Loop () {
     while( GetMessage( & Komunikat, NULL, 0, 0 ) )
     {
         TranslateMessage( & Komunikat );
@@ -214,7 +223,7 @@ public:
     }
   }
 
-  Events ( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
+  int Events ( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
     int wmId, wmEvent;
     switch( msg ) {
       case WM_COMMAND:
@@ -261,8 +270,15 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
   window.textbox(200).Create("test_text", 200, 300, 200, 100, 50);
   window.button(2100).Create("reset", 2100, 200, 200, 100, 50);
+  window.button(100).Create("draw", 100, 100, 100, 100, 50);
   window.radiobutton(201).Create("radio1", 201, 100, 200, 100, 50);
   window.radiobutton(202).Create("radio2", 202, 100, 250, 100, 50);
+
+  window.button(100).OnClick ([]()->void{
+    // HDC hdc;
+    // Graphics graphics(hdc);
+  	// Pen pen(Color(255, 0, 0, 255));
+  });
 
   window.button(2100).OnClick ([]()->void{
     std::cout << "test132\n";
