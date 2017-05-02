@@ -32,10 +32,10 @@ public:
     action = function;
   }
 
-  OnClickAction () {
+  Click () {
     action();
   }
-  
+
   Text (std::string text) {
     SetWindowText(buttonHwnd, text.c_str());
   }
@@ -103,7 +103,7 @@ public:
       case WM_COMMAND:
         wmId = LOWORD(wParam);
         wmEvent = HIWORD(wParam);
-        buttonList[wmId].OnClickAction();
+        buttonList[wmId].Click();
         break;
 
       // case WM_PAINT:
