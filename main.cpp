@@ -33,6 +33,10 @@ public:
     OnClick ([]()->void{});
   }
 
+  Delete () {
+    DestroyWindow(localHwnd);
+  }
+
   OnClick (void(*function)()) {
     actions[_id] = function;
   }
@@ -65,6 +69,10 @@ public:
   		NULL);                               // extra bits you dont really need
 
     OnClick ([]()->void{});
+  }
+
+  Delete () {
+    DestroyWindow(localHwnd);
   }
 
   OnClick (void(*function)()) {
@@ -101,6 +109,10 @@ public:
     OnClick ([]()->void{});
   }
 
+  Delete () {
+    DestroyWindow(localHwnd);
+  }
+
   OnClick (void(*function)()) {
     actions[_id] = function;
   }
@@ -123,6 +135,10 @@ public:
   Create (unsigned int id, unsigned int interval) {
     _id = id;
     SetTimer(hwnd, id, interval, 0);
+  }
+
+  Delete () {
+    DestroyWindow(localHwnd);
   }
 
   Stop () {
@@ -251,6 +267,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   window.button(2100).OnClick ([]()->void{
     std::cout << "test132\n";
     window.textbox(200).SetText("reset :)");
+    window.button(2100).Delete();
+
   });
 
   window.interval(2).Create(2, 500);
