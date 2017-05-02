@@ -45,6 +45,7 @@ public:
   }
 };
 
+
 class textbox_t {
   HWND localHwnd;
   unsigned int _id;
@@ -78,13 +79,48 @@ public:
   }
 };
 
+
+class radiobutton_t {
+  HWND localHwnd;
+  unsigned int _id;
+public:
+  Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    _id = id;
+    localHwnd = CreateWindow(
+    TEXT("button"),                      // The class name required is button
+		TEXT(text.c_str()),                  // the caption of the button
+		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,  // the styles
+		x, y,                                  // the left and top co-ordinates
+		width, height,                              // width and height
+		hwnd,                                 // parent window handle
+		(HMENU)id,                   // the ID of your button
+		hInstance,                            // the instance of your application
+		NULL);                               // extra bits you dont really need
+
+    OnClick ([]()->void{});
+  }
+
+  OnClick (void(*function)()) {
+    actions[_id] = function;
+  }
+
+  Click () {
+    actions[_id]();
+  }
+
+  SetText (std::string text) {
+    SetWindowText(localHwnd, text.c_str());
+  }
+};
+
 class window_t {
   button_t buttonList[1000];
   textbox_t textboxList[1000];
+  radiobutton_t radiobuttonList[1000];
+
   void(*buttonActions[])();
 public:
-  // document_t* document;
-  init (HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  Init (HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     hInstance = hInstance_to_save;
     // WYPEŁNIANIE STRUKTURY
     WNDCLASSEX wc;
@@ -126,7 +162,7 @@ public:
     UpdateWindow( hwnd );
   }
 
-  loop () {
+  Loop () {
     while( GetMessage( & Komunikat, NULL, 0, 0 ) )
     {
         TranslateMessage( & Komunikat );
@@ -134,7 +170,7 @@ public:
     }
   }
 
-  events ( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
+  Events ( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
     int wmId, wmEvent;
     switch( msg ) {
       case WM_COMMAND:
@@ -163,33 +199,31 @@ public:
     }
   }
 
-  button_t& button (unsigned int id) {
-    return buttonList[id];
-  }
-
-  textbox_t& textbox (unsigned int id) {
-    return textboxList[id];
-  }
+  button_t& button (unsigned int id) { return buttonList[id]; }
+  textbox_t& textbox (unsigned int id) { return textboxList[id]; }
+  radiobutton_t& radiobutton (unsigned int id) { return radiobuttonList[id]; }
 };
 
 
 window_t window;
 
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow ) {
-  window.init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+  window.Init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-  window.textbox(200).Create("test_text", 200, 300, 300, 100, 50);
+  window.textbox(200).Create("test_text", 200, 300, 200, 100, 50);
+  window.button(2100).Create("reset", 2100, 200, 200, 100, 50);
+  window.radiobutton(201).Create("radio1", 201, 100, 200, 100, 50);
+  window.radiobutton(202).Create("radio2", 202, 100, 250, 100, 50);
 
-  window.button(2100).Create("reset", 2100, 200, 300, 100, 50);
   window.button(2100).OnClick ([]()->void{
     std::cout << "test132\n";
     window.textbox(200).SetText("reset :)");
   });
 
-  window.loop ();
+  window.Loop ();
 }
 
 
 LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
-    window.events(hwnd, msg, wParam, lParam);
+    window.Events(hwnd, msg, wParam, lParam);
 }
