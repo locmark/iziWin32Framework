@@ -31,7 +31,7 @@ class button {
   HWND localHwnd;
   unsigned int _id;
 public:
-  button (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Init (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = lastId++;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
@@ -69,7 +69,7 @@ class textbox {
   HWND localHwnd;
   unsigned int _id;
 public:
-  textbox (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Init (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = lastId++;
     localHwnd = CreateWindow(
       TEXT("edit"),                      // The class name required is button
@@ -82,14 +82,14 @@ public:
   		hInstance,                            // the instance of your application
   		NULL);                               // extra bits you dont really need
 
-    OnClick ([]()->void{});
+    OnChange ([]()->void{});
   }
 
   void Delete () {
     DestroyWindow(localHwnd);
   }
 
-  void OnClick (void(*function)()) {
+  void OnChange (void(*function)()) {
     actions[_id] = function;
   }
 
@@ -100,6 +100,10 @@ public:
   void SetText (std::string text) {
     SetWindowText(localHwnd, text.c_str());
   }
+
+  void GetText (char text[], unsigned int size) {
+    GetWindowText(localHwnd, text, size);
+  }
 };
 
 
@@ -107,7 +111,7 @@ class radiobutton {
   HWND localHwnd;
   unsigned int _id;
 public:
-  radiobutton (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+  void Init (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
     _id = lastId++;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
@@ -146,7 +150,7 @@ class interval {
   unsigned int _id;
   void(*action)();
 public:
-  interval (unsigned int interval) {
+  void Init (unsigned int interval) {
     _id = lastIntervalId++;
     SetTimer(hwnd, _id, interval, 0);
     SetAction ([]()->void{});
@@ -166,6 +170,11 @@ public:
 
   void Action () {
     intervalActions[_id]();
+  }
+
+  void SetTime (unsigned int interval) {
+    KillTimer(hwnd, _id);
+    SetTimer(hwnd, _id, interval, 0);
   }
 };
 
@@ -260,14 +269,24 @@ public:
 
 window_t window;
 
+
+textbox TextBox;
+button resetButton;
+button drawButton;
+radiobutton radio1;
+radiobutton radio2;
+interval Interval;
+
+
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow ) {
   window.Init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-  textbox TextBox ("test_text", 300, 200, 100, 50);
-  button resetButton ("reset", 200, 200, 100, 50);
-  button drawButton ("draw", 100, 100, 100, 50);
-  radiobutton radio1 ("radio1", 100, 200, 100, 50);
-  radiobutton radio2 ("radio2", 100, 250, 100, 50);
+  TextBox.Init ("test_text", 300, 200, 100, 50);
+  resetButton.Init ("reset", 200, 200, 100, 50);
+  drawButton.Init ("draw", 100, 100, 100, 50);
+  radio1.Init ("radio1", 100, 200, 100, 50);
+  radio2.Init ("radio2", 100, 250, 100, 50);
+  Interval.Init (500);
 
   drawButton.OnClick ([]()->void{
     // Graphics graphics(hdc);
@@ -279,27 +298,34 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
       MB_ICONEXCLAMATION | MB_OK );
     } else {
       std::cout << i << "\n";
-      button dupaButton ("dupa", (((i/8)*100)+300)%(8*100), (i%8)*50, 100, 50);
+      button dupaButton;
+      dupaButton.Init ("dupa", (((i/8)*100)+300)%(8*100), (i%8)*50, 100, 50);
       i++;
     }
   });
 
   resetButton.OnClick ([]()->void{
     std::cout << "test132\n";
-    // TextBox.SetText("reset :)");
-    // resetButton.Delete();
+    TextBox.SetText("reset :)");
+    resetButton.Delete();
   });
 
-  interval Interval (500);
-  Interval.SetAction([]()->void{
-    static int times = 0;
-    times++;
-    std::cout << "timer works :P " << times << "\n";
-
-    if (times >= 10) {
-      // Interval.Stop();
-    }
+  radio1.OnClick ([]()->void{
+    Interval.SetAction([]()->void{
+      drawButton.Click();
+    });
   });
+
+  radio2.OnClick ([]()->void{
+    Interval.Stop();
+  });
+
+  TextBox.OnChange ([]()->void{
+    char text[1024];
+    TextBox.GetText (text, 1024);
+    std::cout << text << "\n";
+  });
+
 
   window.Loop ();
 }
