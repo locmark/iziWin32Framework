@@ -4,30 +4,35 @@
 #include <vector>
 #include <cstdio>
 // #include <Unknwn.h>
-#include <gdiplus.h>
-#include <objidl.h>
-
-
-using namespace Gdiplus;
-
-#pragma comment (lib,"Gdiplus.lib")
+// #include <gdiplus.h>
+// #include <objidl.h>
+//
+//
+// using namespace Gdiplus;
+//
+// #pragma comment (lib,"Gdiplus.lib")
 
 char* NazwaKlasy = (char*)"Klasa Okienka";
 MSG Komunikat;
 HWND hwnd;
 HINSTANCE hInstance;
+HDC hdc;
+
+unsigned long int lastId = 10;
+unsigned long int lastIntervalId = 1;
 
 void(*actions[100])();
+void(*intervalActions[100])();
 
 LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
 
-class button_t {
+class button {
   HWND localHwnd;
   unsigned int _id;
 public:
-  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    _id = id;
+  button (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    _id = lastId++;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
 		TEXT(text.c_str()),                  // the caption of the button
@@ -35,7 +40,7 @@ public:
 		x, y,                                  // the left and top co-ordinates
 		width, height,                              // width and height
 		hwnd,                                 // parent window handle
-		(HMENU)id,                   // the ID of your button
+		(HMENU)_id,                   // the ID of your button
 		hInstance,                            // the instance of your application
 		NULL);                               // extra bits you dont really need
 
@@ -60,12 +65,12 @@ public:
 };
 
 
-class textbox_t {
+class textbox {
   HWND localHwnd;
   unsigned int _id;
 public:
-  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    _id = id;
+  textbox (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    _id = lastId++;
     localHwnd = CreateWindow(
       TEXT("edit"),                      // The class name required is button
   		TEXT(text.c_str()),                  // the caption of the button
@@ -73,7 +78,7 @@ public:
   		x, y,                                  // the left and top co-ordinates
   		width, height,                              // width and height
   		hwnd,                                 // parent window handle
-  		(HMENU)id,                   // the ID of your button
+  		(HMENU)_id,                   // the ID of your button
   		hInstance,                            // the instance of your application
   		NULL);                               // extra bits you dont really need
 
@@ -98,12 +103,12 @@ public:
 };
 
 
-class radiobutton_t {
+class radiobutton {
   HWND localHwnd;
   unsigned int _id;
 public:
-  void Create (std::string text, unsigned int id, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
-    _id = id;
+  radiobutton (std::string text, unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+    _id = lastId++;
     localHwnd = CreateWindow(
     TEXT("button"),                      // The class name required is button
 		TEXT(text.c_str()),                  // the caption of the button
@@ -111,7 +116,7 @@ public:
 		x, y,                                  // the left and top co-ordinates
 		width, height,                              // width and height
 		hwnd,                                 // parent window handle
-		(HMENU)id,                   // the ID of your button
+		(HMENU)_id,                   // the ID of your button
 		hInstance,                            // the instance of your application
 		NULL);                               // extra bits you dont really need
 
@@ -136,14 +141,15 @@ public:
 };
 
 
-class interval_t {
+class interval {
   HWND localHwnd;
   unsigned int _id;
   void(*action)();
 public:
-  void Create (unsigned int id, unsigned int interval) {
-    _id = id;
-    SetTimer(hwnd, id, interval, 0);
+  interval (unsigned int interval) {
+    _id = lastIntervalId++;
+    SetTimer(hwnd, _id, interval, 0);
+    SetAction ([]()->void{});
   }
 
   void Delete () {
@@ -155,23 +161,16 @@ public:
   }
 
   void SetAction (void(*function)()) {
-    action = function;
+    intervalActions[_id] = function;
   }
 
   void Action () {
-    action();
+    intervalActions[_id]();
   }
 };
 
 
 class window_t {
-  // std::vector<button_t> buttonList;  // not working :(
-  button_t buttonList[1000];
-  textbox_t textboxList[1000];
-  radiobutton_t radiobuttonList[1000];
-  interval_t intervalList[1000];
-
-  void(*buttonActions[])();
 public:
   int Init (HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     hInstance = hInstance_to_save;
@@ -208,6 +207,7 @@ public:
     if( hwnd == NULL )
     {
         MessageBox( NULL, "Okno odmówiło przyjścia na świat!", "Ale kicha...", MB_ICONEXCLAMATION );
+        std::cout << ":(\n";
         return 1;
     }
 
@@ -233,16 +233,16 @@ public:
         break;
 
       case WM_TIMER:
-        intervalList[wParam].Action();
+        intervalActions[wParam]();
         break;
 
-      // case WM_PAINT:
-      //   PAINTSTRUCT ps;
-      //   HDC hdc = BeginPaint(hwnd, &ps);
-      //   // TODO: Add any drawing code that uses hdc here...
-      //   EndPaint(hwnd, &ps);
-      //   break;
-      //
+      case WM_PAINT:
+        PAINTSTRUCT ps;
+        hdc = BeginPaint(hwnd, &ps);
+        // TODO: Add any drawing code that uses hdc here...
+        EndPaint(hwnd, &ps);
+        break;
+
       case WM_CLOSE:
         DestroyWindow( hwnd );
         break;
@@ -255,11 +255,6 @@ public:
         return DefWindowProc( hwnd, msg, wParam, lParam );
     }
   }
-
-  button_t& button (unsigned int id) { return buttonList[id]; }
-  textbox_t& textbox (unsigned int id) { return textboxList[id]; }
-  radiobutton_t& radiobutton (unsigned int id) { return radiobuttonList[id]; }
-  interval_t& interval (unsigned int id) { return intervalList[id]; }
 };
 
 
@@ -268,33 +263,41 @@ window_t window;
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow ) {
   window.Init (hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-  window.textbox(200).Create("test_text", 200, 300, 200, 100, 50);
-  window.button(2100).Create("reset", 2100, 200, 200, 100, 50);
-  window.button(100).Create("draw", 100, 100, 100, 100, 50);
-  window.radiobutton(201).Create("radio1", 201, 100, 200, 100, 50);
-  window.radiobutton(202).Create("radio2", 202, 100, 250, 100, 50);
+  textbox TextBox ("test_text", 300, 200, 100, 50);
+  button resetButton ("reset", 200, 200, 100, 50);
+  button drawButton ("draw", 100, 100, 100, 50);
+  radiobutton radio1 ("radio1", 100, 200, 100, 50);
+  radiobutton radio2 ("radio2", 100, 250, 100, 50);
 
-  window.button(100).OnClick ([]()->void{
-    // HDC hdc;
+  drawButton.OnClick ([]()->void{
     // Graphics graphics(hdc);
   	// Pen pen(Color(255, 0, 0, 255));
+
+    static int i = 0;
+    if (i >= 64) {
+      MessageBox( NULL, "dupa blada", "Niestety...",
+      MB_ICONEXCLAMATION | MB_OK );
+    } else {
+      std::cout << i << "\n";
+      button dupaButton ("dupa", (((i/8)*100)+300)%(8*100), (i%8)*50, 100, 50);
+      i++;
+    }
   });
 
-  window.button(2100).OnClick ([]()->void{
+  resetButton.OnClick ([]()->void{
     std::cout << "test132\n";
-    window.textbox(200).SetText("reset :)");
-    window.button(2100).Delete();
-
+    // TextBox.SetText("reset :)");
+    // resetButton.Delete();
   });
 
-  window.interval(2).Create(2, 500);
-  window.interval(2).SetAction([]()->void{
+  interval Interval (500);
+  Interval.SetAction([]()->void{
     static int times = 0;
     times++;
     std::cout << "timer works :P " << times << "\n";
 
     if (times >= 10) {
-      window.interval(2).Stop();
+      // Interval.Stop();
     }
   });
 
