@@ -189,10 +189,58 @@ public:
 };
 
 
-class draw {
+class drawingArea {
+	unsigned int x, y, size_x, size_y;
+	Bitmap* static_bmp;
+	Bitmap* dynamic_bmp;
+	void(*dynamicDraw)();
+
+	void FillStaticBmp() {
+		Graphics* graph = Graphics::FromImage(static_bmp);
+		SolidBrush* myBrush = new SolidBrush(Color::White);
+		graph->FillRectangle(myBrush, 0, 0, size_x, size_y);
+	}
+
 public:
-	void repaint(RECT *area) {
-		InvalidateRect(hwnd, area, TRUE);
+	void Init(unsigned int _x, unsigned int _y, unsigned int _size_x, unsigned int _size_y) {
+		x = _x;
+		y = _y;
+		size_x = _size_x;
+		size_y = _size_y;
+
+		static_bmp = new Bitmap(size_x, size_y);
+		dynamic_bmp = new Bitmap(size_x, size_y);
+
+		FillStaticBmp();
+		dynamic_bmp = static_bmp->Clone(0, 0, size_x, size_y, PixelFormatDontCare);
+	}
+
+	void StaticContent(void(*function)()) {
+		function();
+		dynamic_bmp = static_bmp->Clone(0, 0, size_x, size_y, PixelFormatDontCare);
+	}
+
+	void DynamicContent(void(*function)()) {
+		dynamicDraw = function;
+	}
+
+	void Repaint() {
+		dynamic_bmp = static_bmp->Clone(0, 0, size_x, size_y, PixelFormatDontCare);
+		Rect* rect = new Rect( x, y, size_x, size_y);
+		InvalidateRect(hwnd, (RECT*)rect, TRUE);
+		dynamicDraw();
+		hdc = BeginPaint(hwnd, &ps);
+		Graphics graphics(hdc);
+		graphics.DrawImage(dynamic_bmp, (int)x, y, size_x, size_y);
+		EndPaint(hwnd, &ps);
+	}
+
+	Bitmap* GetDynamicBmp() {
+		return dynamic_bmp;
+	}
+
+	Bitmap* GetStaticBmp() {
+		return static_bmp;
 	}
 };
 
@@ -301,27 +349,9 @@ radiobutton radio1;
 radiobutton radio2;
 interval Interval;
 interval GdiInterval;
+drawingArea Area;
 
-
-
-RECT drawArea1 = { 0, 0, 150, 200 };
-void test() {
-
-	InvalidateRect(hwnd, NULL, TRUE);
-	hdc = BeginPaint(hwnd, &ps);
-
-
-	Graphics graphics(hdc);
-	Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
-	graphics.DrawLine(&pen, Point(10, 10), Point(300, 300));
-	graphics.DrawRectangle(&pen, 50, 50, 100, 200);
-
-	EndPaint(hwnd, &ps);
-
-}
-
-Bitmap whiteBmp(400, 400);
-
+int position = 0;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	// *****show console***** //
@@ -338,37 +368,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	GdiButton.Init("GDI", 100, 150, 100, 50);
 	radio1.Init("radio1", 100, 200, 100, 50);
 	radio2.Init("radio2", 100, 250, 100, 50);
+	Area.Init(0, 0, 400, 400);
 	Interval.Init(500);
-	GdiInterval.Init(10);
+	GdiInterval.Init(100);
 
-	/*Graphics* graph = Graphics::FromImage(&whiteBmp);
-	SolidBrush* myBrush = new SolidBrush(Color::White);
-	graph->FillRectangle(myBrush, 0, 0, 300, 300);*/
+	Area.StaticContent([]()->void {
+		Bitmap* static_bmp = Area.GetStaticBmp();
+		Graphics* graph = Graphics::FromImage(static_bmp);
+		Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
+		graph->DrawRectangle(&pen, 0, 0, 100, 100);
+	});
+
+	Area.DynamicContent([]()->void {
+		Bitmap* dynamic_bmp = Area.GetDynamicBmp();
+		Graphics* graph = Graphics::FromImage(dynamic_bmp);
+		Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
+		graph->DrawRectangle(&pen, position, 10, 200, 200);
+	});
+
 
 
 	GdiInterval.SetAction([]()->void {
-		RECT rect = { 0, 0, 100, 100 };
-		static int position = 0;
-		InvalidateRect(hwnd, NULL, TRUE);
-		Bitmap *bmp = whiteBmp.Clone(0, 0, 400, 400, PixelFormatDontCare);
-		Graphics* graph = Graphics::FromImage(bmp);
-		Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
-		//graphics.DrawLine(&pen, Point(10, 10), Point(300, 300));
-
-
-		graph->DrawRectangle(&pen, (50 + position), 50, 100, 200);
-		hdc = BeginPaint(hwnd, &ps);
-		Graphics graphics(hdc);
-		graphics.DrawImage(bmp, 0, 0, 400, 400);
-
-		EndPaint(hwnd, &ps);
+		Area.Repaint();
 		position++;
 	});
 
-	GdiButton.OnClick([]()->void {
-		test();
-		std::cout << "GdiTest\n";
-	});
 
 	drawButton.OnClick([]()->void {
 
