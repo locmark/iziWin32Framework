@@ -3,22 +3,20 @@
 #include <string>
 #include <vector>
 #include <cstdio>
-// #include <Unknwn.h>
-// #include <gdiplus.h>
-// #include <objidl.h>
-//
-//
-// using namespace Gdiplus;
-//
-// #pragma comment (lib,"Gdiplus.lib")
+#include <objidl.h>
+#include <gdiplus.h>
+using namespace Gdiplus;
+#pragma comment (lib,"Gdiplus.lib")
+
 
 wchar_t* NazwaKlasy = L"Klasa Okienka";
 MSG Komunikat;
 HWND hwnd;
 HINSTANCE hInstance;
 HDC hdc;
+PAINTSTRUCT ps;
 
-unsigned long int lastId = 10;
+unsigned long int lastId = 1;
 unsigned long int lastIntervalId = 1;
 
 void(*actions[100])();
@@ -191,10 +189,22 @@ public:
 };
 
 
+class draw {
+public:
+	void repaint(RECT *area) {
+		InvalidateRect(hwnd, area, TRUE);
+	}
+};
+
+
 class window_t {
 public:
 	int Init(HINSTANCE hInstance_to_save, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 		hInstance = hInstance_to_save;
+
+		GdiplusStartupInput gdiplusStartupInput;
+		ULONG_PTR           gdiplusToken;
+		GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 		// WYPEŁNIANIE STRUKTURY
 		WNDCLASSEX wc;
 
@@ -257,7 +267,6 @@ public:
 			break;
 
 		case WM_PAINT:
-			PAINTSTRUCT ps;
 			hdc = BeginPaint(hwnd, &ps);
 			// TODO: Add any drawing code that uses hdc here...
 			EndPaint(hwnd, &ps);
@@ -270,6 +279,9 @@ public:
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			break;
+
+		case WM_ERASEBKGND:
+			return TRUE;
 
 		default:
 			return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -284,24 +296,82 @@ window_t window;
 textbox TextBox;
 button resetButton;
 button drawButton;
+button GdiButton;
 radiobutton radio1;
 radiobutton radio2;
 interval Interval;
+interval GdiInterval;
+
+
+
+RECT drawArea1 = { 0, 0, 150, 200 };
+void test() {
+
+	InvalidateRect(hwnd, NULL, TRUE);
+	hdc = BeginPaint(hwnd, &ps);
+
+
+	Graphics graphics(hdc);
+	Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
+	graphics.DrawLine(&pen, Point(10, 10), Point(300, 300));
+	graphics.DrawRectangle(&pen, 50, 50, 100, 200);
+
+	EndPaint(hwnd, &ps);
+
+}
+
+Bitmap whiteBmp(400, 400);
 
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+	// *****show console***** //
+	AllocConsole();
+	AttachConsole(GetCurrentProcessId());
+	FILE *stream;
+	freopen_s(&stream, "CON", "w", stdout);
+	// ********************** //
 	window.Init(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
 	TextBox.Init("test_text", 300, 200, 100, 50);
 	resetButton.Init("reset", 200, 200, 100, 50);
 	drawButton.Init("draw", 100, 100, 100, 50);
+	GdiButton.Init("GDI", 100, 150, 100, 50);
 	radio1.Init("radio1", 100, 200, 100, 50);
 	radio2.Init("radio2", 100, 250, 100, 50);
 	Interval.Init(500);
+	GdiInterval.Init(10);
+
+	/*Graphics* graph = Graphics::FromImage(&whiteBmp);
+	SolidBrush* myBrush = new SolidBrush(Color::White);
+	graph->FillRectangle(myBrush, 0, 0, 300, 300);*/
+
+
+	GdiInterval.SetAction([]()->void {
+		RECT rect = { 0, 0, 100, 100 };
+		static int position = 0;
+		InvalidateRect(hwnd, NULL, TRUE);
+		Bitmap *bmp = whiteBmp.Clone(0, 0, 400, 400, PixelFormatDontCare);
+		Graphics* graph = Graphics::FromImage(bmp);
+		Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0, 255));
+		//graphics.DrawLine(&pen, Point(10, 10), Point(300, 300));
+
+
+		graph->DrawRectangle(&pen, (50 + position), 50, 100, 200);
+		hdc = BeginPaint(hwnd, &ps);
+		Graphics graphics(hdc);
+		graphics.DrawImage(bmp, 0, 0, 400, 400);
+
+		EndPaint(hwnd, &ps);
+		position++;
+	});
+
+	GdiButton.OnClick([]()->void {
+		test();
+		std::cout << "GdiTest\n";
+	});
 
 	drawButton.OnClick([]()->void {
-		// Graphics graphics(hdc);
-		// Pen pen(Color(255, 0, 0, 255));
+
 
 		static int i = 0;
 		if (i >= 64) {
@@ -337,7 +407,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		TextBox.GetText(text, 1024);
 		std::cout << text << "\n";
 	});
-
 
 	window.Loop();
 }
